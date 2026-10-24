@@ -63,13 +63,14 @@ The application runs as a scheduled batch job. No continuously running server or
 ## Features
 
 - Checks for new articles every five minutes
-- Parses RSS 2.0 and sorts articles chronologically
+- Parses RSS 2.0 and sorts articles chronologically within each processing pass
 - Extracts article content from HTML
 - Generates concise English summaries
 - Tracks processed articles in Firestore
 - Uses transactional processing leases to reduce duplicate processing
-- Retries failed article processing
-- Processes up to five articles per execution
+- Gives unattempted articles priority over retries
+- Persists bounded retries with exponential backoff in Firestore
+- Attempts up to five articles per execution, including failures
 - Supports a one-off test publication mode
 - Uses Secret Manager instead of hardcoded API credentials
 
@@ -98,6 +99,20 @@ Build:
 go mod download
 go build -o register-news-bot .
 ```
+
+## Automated tests
+
+```bash
+go test -race -count=1 ./...
+go vet ./...
+```
+
+The tests use in-memory state and stubbed external operations; they require no
+cloud credentials and send no Telegram messages. They cover queue priority,
+extraction/Gemini/Telegram failures, retry delays and exhaustion, processing
+limits, duplicate feed items, leases, cancellation, and error propagation.
+GitHub Actions runs the tests, formatting checks, vet, and a Linux build on pushes
+and pull requests.
 
 ## Configuration
 
@@ -197,8 +212,15 @@ Cloud Run Job logs report successful executions, processed articles, and errors.
 Example:
 
 ```text
-Published 2 new articles (attempted 2)
+Published 2 new articles (attempted 3, failed 1)
 ```
+
+If at least one article is attempted and none is published, the job exits with a
+nonzero status so Cloud Run Jobs can report the execution as failed. Firestore
+errors and context cancellation also fail the job. A partially successful batch
+returns success and logs individual failures. A run with no eligible articles
+(already processed, leased, delayed, or exhausted) succeeds without publishing.
+Configure an alert on failed Cloud Run Job executions as well as error logs.
 
 Useful alerts include:
 
@@ -208,6 +230,32 @@ Useful alerts include:
 - Telegram API errors
 
 Gemini usage and rate limits can be monitored in Google AI Studio.
+
+### Queue and retry policy
+
+Each run makes two passes over the current RSS feed. It first attempts articles
+with no previous processing history, oldest first. Eligible retries then use the
+remaining capacity, also oldest first. Only acquired claims count toward the
+shared limit of **five attempts per run**; each article can be attempted at most
+once per run. A batch of five previously unseen broken articles can still consume
+one run, but they yield to unattempted articles on subsequent runs. Retries may
+wait longer when all five slots are needed for first attempts.
+
+Firestore article records retain the existing status and five-minute processing
+lease and add an `attempts` counter, incremented transactionally when claimed.
+Failed attempts are retried after **5, 10, 20, and 40 minutes**, respectively, using
+`leaseUntil` as the earliest retry time. After **five total attempts**, the record
+is marked `failed` and is no longer claimed. Expired leases count toward this
+budget, including a worker that crashes before saving its result. Published and
+seeded records remain unchanged. Existing retry/processing records without a
+counter receive a fresh five-attempt budget and still yield to unattempted items;
+no migration is required.
+
+To retry a `failed` article after fixing its cause, reset that article's Firestore
+record to `status: "retry"`, `attempts: 0`, `owner: ""`, and a `leaseUntil` timestamp
+in the past. It must still be present in the current RSS feed. Check the channel
+first if an earlier Telegram request may have succeeded despite an ambiguous
+network or Firestore error; automatic and manual retries can produce duplicates.
 
 ## Limitations
 
