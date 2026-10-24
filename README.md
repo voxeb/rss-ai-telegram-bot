@@ -57,7 +57,7 @@ go test -race -count=1 ./...
 go vet ./...
 ```
 
-Tests cover queue priority, failures at each publication stage, attempt limits, retry delays and exhaustion, duplicate feed items, leases, cancellation, and transaction callback retries. They use in-memory state and stubbed external operations, require no cloud credentials, and send no Telegram messages. GitHub Actions runs formatting checks, tests, vet, and a Linux build on pushes and pull requests.
+Tests cover queue priority, failures at each publication stage, attempt limits, retry delays and exhaustion, duplicate feed items, leases, cancellation, transaction callback retries, and Telegram credential redaction in returned errors and logs. They use in-memory state and stubbed external operations, require no cloud credentials, and send no Telegram messages. GitHub Actions runs formatting checks, tests, vet, and a Linux build on pushes and pull requests.
 
 ## Configuration and deployment
 
@@ -82,7 +82,7 @@ Follow the [installation and deployment procedure](docs/operations.md#first-inst
 - Partial failures do not necessarily fail the Job. Monitoring must include individual errors; see [operations](docs/operations.md#testing-and-monitoring).
 - Gemini availability, quotas, and prices can change. Cloud services may incur charges; application limits and billing alerts do not guarantee a spending cap.
 
-Never commit API keys, Telegram tokens, service-account credentials, or `.env` files. Use Secret Manager and least-privilege service accounts. Telegram transport errors can currently contain a token-bearing URL: redact credentials before sharing logs. This is a known code-derived risk; see the [limitations register](docs/architecture.md#known-limitations).
+Never commit API keys, Telegram tokens, service-account credentials, or `.env` files. Use Secret Manager and least-privilege service accounts. Telegram errors remove the request URL and redact the configured token from remaining error text before reaching callers or logs; cancellation and timeout identification are preserved. Older versions can log token-bearing URLs. Verify the deployed version and review historical logs for credentials before sharing them; see [operations](docs/operations.md#testing-and-monitoring).
 
 ## Contributing
 
