@@ -15,7 +15,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -231,7 +230,7 @@ func parsePublishedAt(value string) time.Time {
 
 // claimArticle uses a Firestore transaction so concurrent executions cannot
 // process the same item while its lease is active.
-func claimArticle(ctx context.Context, db *firestore.Client, e entry) (string, bool, error) {
+func claimArticle(ctx context.Context, db *firestore.Client, e entry, pass claimPass) (string, bool, error) {
 	doc := db.Collection("articles").Doc(key(e))
 	var nonce [16]byte
 	if _, err := rand.Read(nonce[:]); err != nil {
@@ -240,27 +239,24 @@ func claimArticle(ctx context.Context, db *firestore.Client, e entry) (string, b
 	owner := hex.EncodeToString(nonce[:])
 	acquired := false
 	err := db.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Firestore may rerun this callback after a conflicting commit.
+		acquired = false
 		snap, err := tx.Get(doc)
 		if err != nil && status.Code(err) != codes.NotFound {
 			return err
 		}
-		now := time.Now()
+		var current articleState
 		if err == nil {
-			data := snap.Data()
-			state, _ := data["status"].(string)
-			if state == "published" || state == "seeded" {
-				return nil
-			}
-			if until, ok := data["leaseUntil"].(time.Time); ok && until.After(now) {
-				return nil
+			if err := snap.DataTo(&current); err != nil {
+				return err
 			}
 		}
-		fields := map[string]any{
-			"status": "processing", "owner": owner,
-			"leaseUntil": now.Add(5 * time.Minute),
-			"url":        e.link(), "title": e.Title,
-			"updatedAt": firestore.ServerTimestamp,
+		next, claimed := prepareClaim(current, owner, pass, time.Now())
+		if next == current {
+			return nil
 		}
+		fields := articleStateFields(next)
+		fields["url"], fields["title"] = e.link(), e.Title
 		if err == nil {
 			if err := tx.Set(doc, fields, firestore.MergeAll); err != nil {
 				return err
@@ -270,10 +266,17 @@ func claimArticle(ctx context.Context, db *firestore.Client, e entry) (string, b
 				return err
 			}
 		}
-		acquired = true
+		acquired = claimed
 		return nil
 	})
-	return owner, acquired, err
+	return owner, acquired && err == nil, err
+}
+
+func articleStateFields(s articleState) map[string]any {
+	return map[string]any{
+		"status": s.Status, "owner": s.Owner, "attempts": s.Attempts,
+		"leaseUntil": s.LeaseUntil, "updatedAt": firestore.ServerTimestamp,
+	}
 }
 
 // finishArticle only changes a claim still owned by this execution.
@@ -284,20 +287,15 @@ func finishArticle(ctx context.Context, db *firestore.Client, e entry, owner str
 		if err != nil {
 			return err
 		}
-		if snap.Data()["owner"] != owner {
-			return fmt.Errorf("claim for %s no longer owned", e.link())
+		var current articleState
+		if err := snap.DataTo(&current); err != nil {
+			return err
 		}
-		state := "retry"
-		if published {
-			state = "published"
+		next, err := completeClaim(current, owner, published, time.Now())
+		if err != nil {
+			return fmt.Errorf("finish %s: %w", e.link(), err)
 		}
-		fields := map[string]any{"status": state, "owner": "", "updatedAt": firestore.ServerTimestamp}
-		if published {
-			fields["leaseUntil"] = time.Now()
-		} else {
-			fields["leaseUntil"] = time.Now().Add(2 * time.Minute)
-		}
-		return tx.Set(doc, fields, firestore.MergeAll)
+		return tx.Set(doc, articleStateFields(next), firestore.MergeAll)
 	})
 }
 
@@ -323,10 +321,6 @@ func run(ctx context.Context) error {
 	if len(f.Entries) == 0 {
 		return errors.New("no RSS items found")
 	}
-	sort.SliceStable(f.Entries, func(i, j int) bool {
-		return parsePublishedAt(f.Entries[i].Updated).Before(parsePublishedAt(f.Entries[j].Updated))
-	})
-
 	meta := db.Collection("settings").Doc("feed")
 	_, err = meta.Get(ctx)
 	if status.Code(err) == codes.NotFound {
@@ -350,50 +344,21 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	published, attempted := 0, 0
-	const maxPerRun = 5
-	for _, e := range f.Entries {
-		if attempted >= maxPerRun {
-			break
-		}
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		if e.link() == "" {
-			continue
-		}
-		owner, acquired, err := claimArticle(ctx, db, e)
-		if err != nil {
-			return err
-		}
-		if !acquired {
-			continue
-		}
-		attempted++
-		body, err := articleText(ctx, e.link())
-		if err == nil {
-			var summary string
-			summary, err = summarize(ctx, gemini, e.Title, body)
-			if err == nil {
-				err = send(ctx, token, channel, e, summary)
-			}
-		}
-		if err != nil {
-			log.Printf("Processing failed %s: %v", e.link(), err)
-			if releaseErr := finishArticle(ctx, db, e, owner, false); releaseErr != nil {
-				return fmt.Errorf("processing error: %v; failed to release claim: %w", err, releaseErr)
-			}
-			continue
-		}
-		// Telegram accepted the message. If this Firestore write fails,
-		// retrying after lease expiry can produce a duplicate.
-		if err := finishArticle(ctx, db, e, owner, true); err != nil {
-			return fmt.Errorf("published to Telegram but Firestore update failed: %w", err)
-		}
-		published++
-	}
-	log.Printf("Published %d new articles (attempted %d)", published, attempted)
-	return nil
+	return processArticles(ctx, f.Entries, publicationWorker{
+		claim: func(ctx context.Context, e entry, pass claimPass) (string, bool, error) {
+			return claimArticle(ctx, db, e, pass)
+		},
+		finish: func(ctx context.Context, e entry, owner string, published bool) error {
+			return finishArticle(ctx, db, e, owner, published)
+		},
+		extract: articleText,
+		summarize: func(ctx context.Context, title, body string) (string, error) {
+			return summarize(ctx, gemini, title, body)
+		},
+		send: func(ctx context.Context, e entry, summary string) error {
+			return send(ctx, token, channel, e, summary)
+		},
+	})
 }
 
 func testRun(ctx context.Context) error {
