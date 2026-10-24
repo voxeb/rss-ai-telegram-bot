@@ -234,4 +234,4 @@ See the bot in action:
 
 ## License
 
-No license has been added yet. Until a license is selected, standard copyright restrictions apply.
+This project is licensed under the [MIT License](LICENSE). Copyright © 2026 Denis Beskov.
