@@ -1,0 +1,79 @@
+# Architecture and project baseline
+
+Reviewed on 2026-10-25 against [6174929](https://github.com/voxeb/rss-ai-telegram-bot/tree/61749299e7f49573fa36bcf6f56dd0025a2aaf8b), including [PR #1](https://github.com/voxeb/rss-ai-telegram-bot/pull/1). Update this document when behavior changes. Deployment evidence belongs in [operations.md](operations.md).
+
+**Evidence:** "Implemented" means confirmed in repository code; "documented deployment" means a configuration described in the installation guide. Neither establishes live production state. Proposals below are not accepted requirements.
+
+## Implemented capabilities
+
+| ID | Capability | Current behavior |
+|---|---|---|
+| F1 | Feed ingestion | Reads The Register's RSS 2.0 items and sorts by parsed publication time within each processing pass. The URL ends in `.atom`, but the parser expects RSS. |
+| F2 | Article extraction | Extracts paragraphs and headings from `div.bodytext`, rejects text shorter than 250 bytes, and truncates input at 24,000 bytes. |
+| F3 | Summarization | Calls `gemini-3.5-flash-lite`; the prompt requests English, 2–4 sentences, at most 80 words, key facts and implications. These are prompt instructions, not validated output guarantees. |
+| F4 | Telegram publication | Sends an HTML-formatted headline, escaped summary, and original-article link. |
+| F5 | Initialization | The first normal run marks current RSS items `seeded` and creates the initialization marker without publishing historical articles. |
+| F6 | Duplicate suppression | Uses persistent identity, transactional five-minute processing leases, and ownership checks when completing claims. |
+| F7 | Bounded retries | Prioritizes first attempts; allows at most five claims per run and five attempts per article, including expired processing claims. Failed attempts wait at least 5, 10, 20, then 40 minutes. |
+| F8 | Diagnostics and test mode | Logs batch outcomes; all-attempts-failed batches fail the Job. `TEST_MODE=true` sends a real `[TEST]` message without updating publication history. |
+| F9 | Automated validation | Queue tests and Firestore-client tests with an RPC stub; CI checks formatting, race-enabled tests, vet, and a Linux build. |
+
+Sources: [main.go](../main.go), [queue.go](../queue.go), [queue_test.go](../queue_test.go), [firestore_test.go](../firestore_test.go), and [CI workflow](../.github/workflows/test.yml). The [Go CI run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823191) and [CodeQL run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823209) passed on the reviewed commit; this is a dated observation, not a promise about future commits or production.
+
+## Recorded decisions
+
+These choices are embodied in the code or deployment guide. Historical alternatives and motives are not inferred. Keep future accepted decisions in this table with their approving PR.
+
+| ID | Decision | Status and consequence |
+|---|---|---|
+| A1 | One Go batch process in a container | Implemented with Go 1.24 and a non-root runtime image. Cloud Run Jobs invoked every five minutes is the documented deployment. |
+| A2 | Firestore stores state and coordinates claims | Implemented using `articles` and `settings`. No separate message broker; pending work is still selected from the current feed. |
+| A3 | Article key is SHA-256 of GUID, a pipe separator, and URL | Implemented. A changed GUID or URL can create a different identity; there is no content-based or per-channel identity. |
+| A4 | First attempts precede retries | Implemented in PR #1. Each pass is oldest-first; retries can wait when all five slots go to new articles. Global publication order is not guaranteed. |
+| A5 | Application-managed retry budget | Implemented in PR #1. The deployment guide sets Cloud Run task retries to zero. Retry history survives process restarts. |
+| A6 | Secrets arrive through environment variables | Implemented. Secret Manager injection and separate application/Scheduler identities are documented deployment choices; live IAM is unverified. |
+| A7 | Specialize for the current use case | Implemented for one source and one target channel per execution. Feed URL, extractor, model endpoint, and English prompt are code constants. |
+
+## Processing and stored state
+
+Each normal run fetches the feed, checks initialization, then performs two passes over its items: unattempted articles, followed by eligible retries. Only acquired claims count toward the shared run limit; each article is attempted at most once per execution. A successful claim precedes HTML extraction, Gemini generation, Telegram delivery, and the Firestore result update. The program deadline is 110 seconds; the HTTP client timeout is 25 seconds. Five attempts is an upper bound, not guaranteed throughput.
+
+| Stored data | Purpose |
+|---|---|
+| `settings/feed.initialized` | Initialization timestamp; the document's existence determines whether seeding is required. |
+| `articles/{key}.status` | `seeded`, `processing`, `retry`, `published`, or `failed`. |
+| `owner`, `leaseUntil` | Random claim owner and processing lease; `leaseUntil` also represents the earliest retry time. |
+| `attempts` | Transactionally incremented claim count, including a claim whose worker subsequently crashes. |
+| `url`, `title`, `updatedAt` | Article reference and most recent state update. Seeded records instead initially contain `status`, `url`, and `created`. |
+
+`seeded`, `published`, and `failed` records are not automatically claimed. A failed attempt becomes `retry`, or `failed` when its budget is exhausted. An expired final processing claim is retired when the article is encountered again. Completion requires the current owner. Legacy retry/processing records without `attempts` receive a fresh budget and still yield to first attempts.
+
+Article bodies, generated summaries, Telegram message IDs, and a durable list of all discovered pending items are not stored. [Operations](operations.md#recovering-an-article) describes the existing manual recovery procedure.
+
+## Known limitations
+
+| ID | Confirmed behavior or code-derived risk | Consequence |
+|---|---|---|
+| L1 | Only current RSS items are selected | Disappeared items cannot be retried; outages can also miss items that were never observed. |
+| L2 | Telegram delivery and Firestore completion are separate operations | A lost response or failed completion write can lead to duplicate delivery. Exactly-once delivery is not guaranteed. |
+| L3 | Publication errors share the same retry policy | Quota exhaustion, a provider outage, and a broken article can each exhaust an article's budget. |
+| L4 | Retries repeat extraction and generation | A Telegram failure can cause another Gemini call; summaries are not reused. |
+| L5 | Per-run limits are not a project spending cap | No application-wide daily request budget, token-usage accounting, or shared provider cooldown exists. |
+| L6 | Partial success and no eligible work return success | Job status alone does not reveal individual failures or exhausted work. Alert configuration is unverified. |
+| L7 | Extraction and summaries depend on external content | HTML changes can break extraction; the prompt's length, language, and factual requirements are not fully validated. |
+| L8 | Test coverage focuses on coordination | RSS parsing, HTML fixtures, and real HTTP response handling are not directly tested. The Firestore stub is not an emulator. |
+| L9 | Telegram transport errors are returned and logged without redaction | A request URL can contain the bot token. This is a static-analysis finding, not evidence of an actual disclosure; tracked in [Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3). |
+
+## Open questions and proposals
+
+These remain open. Acceptance of this documentation does not select new recovery, budget, or product behavior. Record discussion in [baseline Issue #2](https://github.com/voxeb/rss-ai-telegram-bot/issues/2) and update decisions only when agreed.
+
+| ID | Question | Proposal for discussion |
+|---|---|---|
+| Q1 | Which version and operational controls are live? | Verify the image-to-commit relationship, Scheduler, execution history, alerts, quotas, and spending. |
+| Q2 | What recovery coverage and publication delay are required? | Retain discovered pending articles beyond feed eviction; decide separately whether unobserved articles need recovery and when news becomes too old. |
+| Q3 | How should exhausted attempts and ambiguous delivery be handled? | Agree a manual review/retry procedure and acceptable duplicate-versus-omission tradeoffs before changing automation. |
+| Q4 | What budget and quota policy is acceptable? | Agree an amount and response to provider limits before implementing a shared pause or spending controls. |
+| Q5 | Should scope expand? | Keep The Register, English summaries, and one destination for the next phase unless a concrete request changes the scope. |
+
+Possible later work: a durable discovered-article backlog, explicit provider-outage handling, and reuse of generated summaries. These are proposals, not implemented features or an approved roadmap. The existing queue-priority fix is complete in PR #1.
