@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -191,7 +192,12 @@ func summarize(ctx context.Context, apiKey, title, body string) (string, error) 
 	}
 	return s, nil
 }
-func send(ctx context.Context, token, channel string, e entry, summary string) error {
+func send(ctx context.Context, token, channel string, e entry, summary string) (err error) {
+	defer func() {
+		if err != nil {
+			err = safeTelegramError(err, token)
+		}
+	}()
 	msg := "<b>" + stdhtml.EscapeString(e.Title) + "</b>\n\n" + stdhtml.EscapeString(summary) + "\n\n<a href=\"" + stdhtml.EscapeString(e.link()) + "\">Read full article →</a>"
 	payload, _ := json.Marshal(map[string]any{"chat_id": channel, "text": msg, "parse_mode": "HTML", "disable_web_page_preview": false})
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.telegram.org/bot"+token+"/sendMessage", bytes.NewReader(payload))
@@ -210,6 +216,30 @@ func send(ctx context.Context, token, channel string, e entry, summary string) e
 	}
 	return nil
 }
+
+// Do not wrap the original error: even its unwrapped cause can contain the
+// credential-bearing URL. Retain only safe cancellation/timeout identities.
+func safeTelegramError(err error, token string) error {
+	for _, cause := range []error{context.Canceled, context.DeadlineExceeded} {
+		if errors.Is(err, cause) {
+			return fmt.Errorf("sendMessage: %w", cause)
+		}
+	}
+	var timeout interface{ Timeout() bool }
+	if errors.As(err, &timeout) && timeout.Timeout() {
+		return fmt.Errorf("sendMessage: %w", os.ErrDeadlineExceeded)
+	}
+	var requestError *url.Error
+	if errors.As(err, &requestError) {
+		err = requestError.Err
+	}
+	message := err.Error()
+	if token != "" {
+		message = strings.ReplaceAll(message, token, "[REDACTED]")
+	}
+	return fmt.Errorf("sendMessage: %s", message)
+}
+
 func env(k string) string {
 	v := os.Getenv(k)
 	if v == "" {
