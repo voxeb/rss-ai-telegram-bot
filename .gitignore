@@ -1,0 +1,9 @@
+register-news-bot
+*.bak
+*.backup
+*.exe
+.env
+.env.*
+*.key
+*.pem
+.DS_Store
