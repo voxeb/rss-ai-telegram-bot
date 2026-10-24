@@ -1,6 +1,6 @@
 # Operations
 
-This runbook describes existing behavior and how to inspect it. Repository baseline: [6174929](https://github.com/voxeb/rss-ai-telegram-bot/commit/61749299e7f49573fa36bcf6f56dd0025a2aaf8b), reviewed on 2026-10-25. See [architecture](architecture.md) for limitations and open decisions.
+This runbook describes existing behavior and how to inspect it. Initial repository baseline: [6174929](https://github.com/voxeb/rss-ai-telegram-bot/commit/61749299e7f49573fa36bcf6f56dd0025a2aaf8b), reviewed on 2026-10-25. See [architecture](architecture.md) for subsequent corrections, limitations, and open decisions.
 
 ## Deployment evidence
 
@@ -111,7 +111,7 @@ Example result: `Published 2 new articles (attempted 3, failed 1)`.
 
 Recommended controls, **not verified as configured**: failed-execution alerts, detection of individual processing errors, and review of exhausted records. Choose alert thresholds after establishing normal feed activity; silence alone does not prove a fault. An alert on failed Jobs alone misses partial failures. Check application error messages as well as platform status; do not assume plain-text logs have structured error severity.
 
-Transport errors can currently include the Telegram request URL and token. Redact credentials before sharing logs or attaching evidence to a public Issue. Fixing this risk is a separate task; this runbook does not claim an actual disclosure.
+Current repository code sanitizes Telegram errors before callers log them ([Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3)). This does not establish that the deployed image includes the correction. Older versions can log the Telegram request URL and token; verify the deployed source/image mapping and redact credentials from historical logs before sharing them or attaching evidence to a public Issue. No actual disclosure has been established.
 
 ## Recovering an article
 
