@@ -1,6 +1,6 @@
 # Architecture and project baseline
 
-Reviewed on 2026-10-25 against [6174929](https://github.com/voxeb/rss-ai-telegram-bot/tree/61749299e7f49573fa36bcf6f56dd0025a2aaf8b), including [PR #1](https://github.com/voxeb/rss-ai-telegram-bot/pull/1). Update this document when behavior changes. Deployment evidence belongs in [operations.md](operations.md).
+Initial baseline reviewed on 2026-10-25 against [6174929](https://github.com/voxeb/rss-ai-telegram-bot/tree/61749299e7f49573fa36bcf6f56dd0025a2aaf8b), including [PR #1](https://github.com/voxeb/rss-ai-telegram-bot/pull/1). Telegram error handling and tests below include the correction tracked in [Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3). Update this document when behavior changes. Deployment evidence belongs in [operations.md](operations.md).
 
 **Evidence:** "Implemented" means confirmed in repository code; "documented deployment" means a configuration described in the installation guide. Neither establishes live production state. Proposals below are not accepted requirements.
 
@@ -15,10 +15,10 @@ Reviewed on 2026-10-25 against [6174929](https://github.com/voxeb/rss-ai-telegra
 | F5 | Initialization | The first normal run marks current RSS items `seeded` and creates the initialization marker without publishing historical articles. |
 | F6 | Duplicate suppression | Uses persistent identity, transactional five-minute processing leases, and ownership checks when completing claims. |
 | F7 | Bounded retries | Prioritizes first attempts; allows at most five claims per run and five attempts per article, including expired processing claims. Failed attempts wait at least 5, 10, 20, then 40 minutes. |
-| F8 | Diagnostics and test mode | Logs batch outcomes; all-attempts-failed batches fail the Job. `TEST_MODE=true` sends a real `[TEST]` message without updating publication history. |
-| F9 | Automated validation | Queue tests and Firestore-client tests with an RPC stub; CI checks formatting, race-enabled tests, vet, and a Linux build. |
+| F8 | Diagnostics and test mode | Logs batch outcomes; all-attempts-failed batches fail the Job. Telegram errors are sanitized before returning to callers, retaining cancellation and timeout identification. `TEST_MODE=true` sends a real `[TEST]` message without updating publication history. |
+| F9 | Automated validation | Queue tests, Firestore-client tests with an RPC stub, and Telegram error/log tests with an HTTP stub; CI checks formatting, race-enabled tests, vet, and a Linux build. |
 
-Sources: [main.go](../main.go), [queue.go](../queue.go), [queue_test.go](../queue_test.go), [firestore_test.go](../firestore_test.go), and [CI workflow](../.github/workflows/test.yml). The [Go CI run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823191) and [CodeQL run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823209) passed on the reviewed commit; this is a dated observation, not a promise about future commits or production.
+Sources: [main.go](../main.go), [queue.go](../queue.go), [queue_test.go](../queue_test.go), [firestore_test.go](../firestore_test.go), [telegram_test.go](../telegram_test.go), and [CI workflow](../.github/workflows/test.yml). The [Go CI run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823191) and [CodeQL run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823209) passed on the initial baseline commit; this is a dated observation, not a promise about future commits or production.
 
 ## Recorded decisions
 
@@ -61,8 +61,9 @@ Article bodies, generated summaries, Telegram message IDs, and a durable list of
 | L5 | Per-run limits are not a project spending cap | No application-wide daily request budget, token-usage accounting, or shared provider cooldown exists. |
 | L6 | Partial success and no eligible work return success | Job status alone does not reveal individual failures or exhausted work. Alert configuration is unverified. |
 | L7 | Extraction and summaries depend on external content | HTML changes can break extraction; the prompt's length, language, and factual requirements are not fully validated. |
-| L8 | Test coverage focuses on coordination | RSS parsing, HTML fixtures, and real HTTP response handling are not directly tested. The Firestore stub is not an emulator. |
-| L9 | Telegram transport errors are returned and logged without redaction | A request URL can contain the bot token. This is a static-analysis finding, not evidence of an actual disclosure; tracked in [Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3). |
+| L8 | Test coverage focuses on coordination and Telegram failures | RSS/HTML fixtures provide only basic coverage; live provider integration is untested. The Firestore stub is not an emulator. |
+
+Resolved in code: **L9**, credential-bearing Telegram errors ([Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3)). The send boundary removes the request URL, redacts the configured token from remaining text, and retains safe cancellation/timeout causes without wrapping the original error. Regression tests cover returned errors and logs in both the queue and test-publication paths. Deployment of this correction remains unverified; historical logs can still contain credentials. No actual disclosure has been established.
 
 ## Open questions and proposals
 
