@@ -1,8 +1,14 @@
 # One-time GitHub Actions access setup
 
-This is a concrete **plan, not an applied configuration** for [Issue #12](https://github.com/voxeb/rss-ai-telegram-bot/issues/12). Cloud IAM, APIs, GitHub variables, and production were not changed while preparing the workflows. Review and explicitly authorize the setup separately. Run commands from the merged, reviewed checkout. Do not create or paste JSON service-account keys.
+The one-time setup for [Issue #12](https://github.com/voxeb/rss-ai-telegram-bot/issues/12) was **applied with explicit maintainer approval on 2026-10-25 (UTC)** after PR #13 merged. The commands below document the approved setup; do not rerun creation commands for these existing resources. Do not create or paste JSON service-account keys.
 
-## Read-only inventory on 2026-10-25 (UTC)
+## Applied setup and integration status
+
+Created the dedicated pool/provider, two service accounts, and three custom roles below; enabled STS and applied exactly the listed bindings. Read-back confirmed the provider's immutable repository/owner IDs, main/manual-workflow restrictions, Job and registry scopes, service-account impersonation scopes, and all three GitHub variable values. No additional permission grant was needed. Existing runtime, Scheduler, default compute, and service-agent bindings were preserved.
+
+The [first approved dispatch](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40222274708) passed pinned-commit checks and OIDC authentication, built with the dedicated builder, verified source provenance, and installed the image. An independent comparison confirmed that non-image Job configuration was unchanged. Its automatic observation failed because the controller assumed a full parent Job path in the execution response; [Issue #14](https://github.com/voxeb/rss-ai-telegram-bot/issues/14) tracks that defect and Logging pagination. This is not a successful end-to-end workflow validation. Rollback and an actual concurrent-update conflict remain untested live. Release IDs/digests and rollback inputs are retained in the automatic Actions report rather than duplicated here as release history.
+
+## Historical inventory before setup on 2026-10-25 (UTC)
 
 | Resource | Observed state / action |
 |---|---|
@@ -42,7 +48,7 @@ IAM cannot limit `run.jobs.update` to the image field: that guarantee is enforce
 
 ## Commands to apply only after approval
 
-The following names are absent in the inventory. Stop on any command failure; do not suppress an unexpected error or assume an existing resource is equivalent.
+These names were absent in the pre-setup inventory and now exist. For recovery or another environment, inspect before creating anything. Stop on any command failure; do not suppress an unexpected error or assume an existing resource is equivalent.
 
 ```bash
 gcloud services enable sts.googleapis.com --project=register-news
@@ -123,7 +129,7 @@ gh variable set GCP_BUILD_SERVICE_ACCOUNT --repo voxeb/rss-ai-telegram-bot \
   --body register-news-builder@register-news.iam.gserviceaccount.com
 ```
 
-Re-read provider mappings/condition, the new identities' bindings, enabled APIs, and these variable values after setup. Verify no additional grant was required before adding one; capture exact sanitized denial codes. The controller and IAM plan have production-free tests and read-only API shape checks, but WIF exchange, custom-role sufficiency, actual PATCH etag enforcement, and dedicated-account builds have **not** been exercised live. The first approved manual dispatch is the integration validation; a failed check must stop without widening permissions automatically.
+Re-read provider mappings/condition, the identities' bindings, enabled APIs, and these variable values after any setup change. Capture exact sanitized denial codes before proposing additional rights; a failed check must stop without widening permissions automatically. WIF exchange, dedicated-account builds, and image-only updates have now been exercised with these permissions. A successful etag-bearing PATCH does not prove conflict rejection; that safety path has production-free tests and has not been deliberately raced in production.
 
 ## Official references checked on 2026-10-25
 

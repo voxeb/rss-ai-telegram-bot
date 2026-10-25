@@ -4,7 +4,7 @@ This runbook describes existing behavior and how to inspect it. Initial reposito
 
 ## Managed releases through GitHub Actions
 
-The workflows in [Issue #12](https://github.com/voxeb/rss-ai-telegram-bot/issues/12) are prepared in the repository. **One-time WIF/IAM setup is not applied and live workflow integration is not verified.** Use the [inventoried access plan and exact commands](release-access.md) only after separate approval. Existing production settings and the work in PR #8 and PR #11 were preserved while preparing this change.
+The workflows in [Issue #12](https://github.com/voxeb/rss-ai-telegram-bot/issues/12) are merged and **one-time WIF/IAM setup was applied with approval on 2026-10-25 (UTC)**. See the [applied access configuration and integration limits](release-access.md). The first dispatch passed checks, OIDC, build provenance, and image installation; automatic execution observation failed on the API assumptions tracked in [Issue #14](https://github.com/voxeb/rss-ai-telegram-bot/issues/14). Do not treat that run as end-to-end success. Existing non-image Job settings and the work in PR #8 and PR #11 were preserved.
 
 Once configured, a maintainer's manual dispatch from `main` explicitly authorizes the corresponding image deployment or rollback. Merge/push/PR events do not deploy. Both workflows use `register-news-production-update` with `cancel-in-progress: false`; GitHub may replace a pending run, so this is not a durable queue. Do not cancel a running update casually: a cancelled observer does not undo an accepted cloud update.
 
@@ -50,7 +50,7 @@ gh run download RUN_ID --repo voxeb/rss-ai-telegram-bot \
   --name release-report-RUN_ID-ATTEMPT --dir release-evidence
 ```
 
-The cloud stage waits at most 1,100 seconds for a build, 180 seconds for image readiness, and 900 seconds for the next scheduled execution and its logs, plus bounded API request time. The workflow has a 50-minute overall timeout; the post-check access token lasts at most one hour. The first execution created **after image verification**, by the existing Scheduler account, is checked against the target image. Manual/operator executions do not satisfy this check. Job generation/image are checked throughout observation so another operator's update cannot silently validate this release.
+The cloud stage waits at most 1,100 seconds for a build, 180 seconds for image readiness, and 900 seconds for the next scheduled execution and its logs, plus bounded API request time. The workflow has a 50-minute overall timeout; the post-check access token lasts at most one hour. The first execution created **after image verification**, by the existing Scheduler account, is checked against the target image. Its resource path must match the project, region, and Job; its parent field may use the short Job name returned by v2 or the full path. Manual/operator executions do not satisfy this check. Job generation/image are checked throughout observation so another operator's update cannot silently validate this release. Log searches use the execution time interval, follow up to ten pages (including empty continuation pages), and reject more than 1,000 entries or repeated page tokens. Only counters and error counts enter reports.
 
 Read the three outcomes separately:
 

@@ -124,15 +124,28 @@ class Cloud:
                 return result
         raise ReleaseError("execution_list_limit")
 
-    def logs(self, execution):
+    def logs(self, execution, started, completed):
+        lower = (timestamp(started) - dt.timedelta(seconds=1)).isoformat()
+        upper = (timestamp(completed) + dt.timedelta(seconds=60)).isoformat()
         query = (f'resource.type="cloud_run_job" AND resource.labels.job_name="register-news" '
                  f'AND resource.labels.location="{REGION}" AND '
-                 f'labels."run.googleapis.com/execution_name"="{execution}"')
-        data = self.call("logging.googleapis.com", "v2/entries:list", "POST",
-                         {"resourceNames": [f"projects/{PROJECT}"], "filter": query,
-                          "orderBy": "timestamp asc", "pageSize": 1000})
-        require(not data.get("nextPageToken"), "execution_log_limit")
-        return log_counters(data.get("entries", []))
+                 f'labels."run.googleapis.com/execution_name"="{execution}" '
+                 f'AND timestamp >= "{lower}" AND timestamp <= "{upper}"')
+        entries, page, seen = [], "", set()
+        # Logging can return an empty page with a continuation token while scanning.
+        # Bound the time range, page count, and total entries without discarding errors.
+        for _ in range(10):
+            data = self.call("logging.googleapis.com", "v2/entries:list", "POST",
+                             {"resourceNames": [f"projects/{PROJECT}"], "filter": query,
+                              "orderBy": "timestamp desc", "pageSize": 1000, "pageToken": page})
+            entries.extend(data.get("entries", []))
+            require(len(entries) <= 1000, "execution_log_limit")
+            page = data.get("nextPageToken", "")
+            if not page:
+                return log_counters(entries)
+            require(page not in seen, "execution_log_pagination_loop")
+            seen.add(page)
+        raise ReleaseError("execution_log_limit")
 
 
 def writable_job(job):
@@ -313,10 +326,15 @@ class Release:
             if candidates:
                 execution = next((e for e in candidates if e["name"] == execution_id), candidates[0])
                 execution_id = execution["name"]
-                require(execution.get("job") == JOB and
-                        execution["template"]["containers"][0]["image"] == IMAGE + "@" + target,
-                        "scheduled_execution_image_mismatch")
+                # Live v2 responses use the short parent name. The execution resource
+                # path still independently binds the project, region, and Job.
+                require(re.fullmatch(re.escape(JOB) + r"/executions/[a-z0-9-]+", execution_id)
+                        and execution.get("job") in {JOB, JOB.rsplit("/", 1)[-1]},
+                        "scheduled_execution_parent_mismatch")
                 self.note(execution_id=execution_id.rsplit("/", 1)[-1], execution_creator=SCHEDULER)
+                containers = execution["template"]["containers"]
+                require(len(containers) == 1 and containers[0]["image"] == IMAGE + "@" + target,
+                        "scheduled_execution_image_mismatch")
                 if execution.get("completionTime"):
                     completed = any(c.get("type") == "Completed" and c.get("state") == "CONDITION_SUCCEEDED"
                                     for c in execution.get("conditions", []))
@@ -325,7 +343,8 @@ class Release:
                               succeeded_tasks=execution.get("succeededCount", 0),
                               failed_tasks=execution.get("failedCount", 0),
                               verification="execution_completed")
-                    counts, errors = self.cloud.logs(self.record["execution_id"])
+                    counts, errors = self.cloud.logs(self.record["execution_id"], execution["createTime"],
+                                                     execution["completionTime"])
                     self.note(counters=counts, error_entries=errors,
                               article_published=None if counts is None else counts["published"] > 0)
                     require(completed and not execution.get("failedCount") and not execution.get("cancelledCount"),
