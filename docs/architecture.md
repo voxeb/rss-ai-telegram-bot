@@ -17,6 +17,7 @@ Initial baseline reviewed on 2026-10-25 against [6174929](https://github.com/vox
 | F7 | Bounded retries | Prioritizes first attempts; allows at most five claims per run and five attempts per article, including expired processing claims. Failed attempts wait at least 5, 10, 20, then 40 minutes. |
 | F8 | Diagnostics and test mode | Logs batch outcomes; all-attempts-failed batches fail the Job. Telegram errors are sanitized before returning to callers, retaining cancellation and timeout identification. `TEST_MODE=true` sends a real `[TEST]` message without updating publication history. |
 | F9 | Automated validation | RSS headline fixtures, queue tests, Firestore-client tests with an RPC stub, and publication/error/log tests with an HTTP stub; CI checks formatting, race-enabled tests, vet, and a Linux build. |
+| F10 | Controlled releases | Manual-main-only deploy/rollback workflows pin the controller commit, run shared CI checks before cloud authentication, use WIF, and generate sanitized release reports. Initial cloud access setup and live workflow integration remain unverified; see [access plan](release-access.md). |
 
 Sources: [main.go](../main.go), [feed.go](../feed.go), [feed_test.go](../feed_test.go), [queue.go](../queue.go), [queue_test.go](../queue_test.go), [firestore_test.go](../firestore_test.go), [telegram_test.go](../telegram_test.go), and [CI workflow](../.github/workflows/test.yml). The [Go CI run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823191) and [CodeQL run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823209) passed on the initial baseline commit; this is a dated observation, not a promise about future commits or production.
 
@@ -35,6 +36,9 @@ These choices are embodied in the code or deployment guide. Historical alternati
 | A5 | Application-managed retry budget | Implemented in PR #1. The deployment guide sets Cloud Run task retries to zero. Retry history survives process restarts. |
 | A6 | Secrets arrive through environment variables | Implemented. Secret Manager injection and separate application/Scheduler identities are documented deployment choices; live IAM is unverified. |
 | A7 | Specialize for the current use case | Implemented for one source and one target channel per execution. Feed URL, extractor, model endpoint, and English prompt are code constants. |
+| A8 | Manual, conflict-checked release automation | Agreed in [Issue #12](https://github.com/voxeb/rss-ai-telegram-bot/issues/12). Deploy and rollback share a non-cancelling concurrency group, require an expected current digest, use the Cloud Run v2 etag precondition, and preserve all writable Job configuration except the image. A manual dispatch is release approval; a merge does not deploy. |
+| A9 | Separate release authority and build authority | Workflow OIDC is constrained to repository/owner IDs, main, manual dispatch, and the two workflow paths. A dedicated builder receives registry/logging rights, while the release identity updates the existing Job. IAM setup is a plan requiring separate approval, not a deployed capability. |
+| A10 | Automatic release evidence | Actions summaries and immutable per-attempt report artifacts replace per-release documentation PRs. Reports distinguish installed image, execution completion, and application-reported publication. Observation never triggers executions or automatic rollback. |
 
 ## Processing and stored state
 

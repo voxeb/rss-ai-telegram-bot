@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+test -z "$(gofmt -l .)"
+go test -race -count=1 ./...
+go vet ./...
+CGO_ENABLED=0 GOOS=linux go build -trimpath -o register-news-bot .

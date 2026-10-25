@@ -1,0 +1,9 @@
+.git
+.github
+.env
+.env.*
+gha-creds-*.json
+*.key
+*.pem
+__pycache__
+register-news-bot

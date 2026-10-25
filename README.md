@@ -73,6 +73,8 @@ Deployment requires a Google Cloud project with billing enabled; Cloud Run, Clou
 
 Follow the [installation and deployment procedure](docs/operations.md#first-installation-and-deployment). For an existing installation, inspect the current state before changing settings or repeating initialization. Test mode publishes a real message and must not be enabled in the scheduled configuration.
 
+For routine releases, use the [manual deploy and rollback workflows](docs/operations.md#managed-releases-through-github-actions) after the separately approved [one-time OIDC/IAM setup](docs/release-access.md). They pin and validate a source commit, build from GitHub through Cloud Build, update only the existing Job image with conflict checks, and observe a scheduled execution. Merging a PR does not deploy. Release evidence is generated in Actions summaries and retained artifacts; zero publication attempts do not verify delivery.
+
 ## Limitations and security
 
 - Work is selected from the current RSS feed. Extended outages or feed eviction can cause missed publications, including retries whose records remain in Firestore.

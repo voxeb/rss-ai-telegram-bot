@@ -1,0 +1,6 @@
+title: Register News Release Image Reader
+description: Verify application image metadata and allow deployment image access.
+stage: GA
+includedPermissions:
+  - artifactregistry.dockerimages.get
+  - artifactregistry.repositories.downloadArtifacts

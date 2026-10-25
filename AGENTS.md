@@ -23,15 +23,25 @@
 
    For documentation-only changes, review text, links, and the diff; Go checks
    are not required locally.
-7. Record agreed decisions in `docs/architecture.md` and operational facts and
-   deployment evidence in `docs/operations.md`; identify unverified claims.
+7. Record agreed decisions in `docs/architecture.md` and operational facts in
+   `docs/operations.md`; identify unverified claims. Managed release history is
+   generated automatically as Actions summaries and `release-report-*`
+   artifacts. Do not create a documentation PR after each managed release.
 8. Never expose secrets in files, command output, logs, Issues, or PRs. Gather
    facts and exact errors before diagnosing or proposing fixes; redact secrets
    before displaying or sharing evidence.
 9. Deployment, cloud resource changes, production Firestore writes, and real
    publications require explicit maintainer approval. `TEST_MODE=true` also
-   sends a real Telegram message.
+   sends a real Telegram message. A maintainer's manual dispatch of `deploy.yml`
+   or `rollback.yml` on `main` is explicit approval for that workflow's guarded
+   image update or rollback and normal scheduled operation afterward. It does
+   not authorize IAM/setup changes, manual executions, TEST_MODE, state resets,
+   or message edits. Merging a PR is never deployment approval.
 10. PRs must describe changes, validation results, and limitations. A merged PR
     is not evidence of deployment.
 11. When handing work to another session, leave Issue/PR links, agreed decisions,
     completed checks, and remaining questions in the relevant Issue or PR.
+12. For release-controller or workflow changes, run the production-free Python
+    tests and actionlint, and preserve the shared Go checks in
+    `.github/scripts/check-go.sh`. Never exercise deploy/rollback against
+    production as a test without a separately authorized manual dispatch.
