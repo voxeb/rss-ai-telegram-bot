@@ -63,7 +63,7 @@ Article bodies, generated summaries, Telegram message IDs, and a durable list of
 | L7 | Extraction and summaries depend on external content | HTML changes can break extraction; the prompt's length, language, and factual requirements are not fully validated. |
 | L8 | Test coverage focuses on coordination and Telegram failures | RSS/HTML fixtures provide only basic coverage; live provider integration is untested. The Firestore stub is not an emulator. |
 
-Resolved in code: **L9**, credential-bearing Telegram errors ([Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3)). The send boundary removes the request URL, redacts the configured token from remaining text, and retains safe cancellation/timeout causes without wrapping the original error. Regression tests cover returned errors and logs in both the queue and test-publication paths. Deployment of this correction remains unverified; historical logs can still contain credentials. No actual disclosure has been established.
+Resolved in code: **L9**, credential-bearing Telegram errors ([Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3)). The send boundary removes the request URL, redacts the configured token from remaining text, and retains safe cancellation/timeout causes without wrapping the original error. Regression tests cover returned errors and logs in both the queue and test-publication paths. Deployment of this correction was verified from maintainer-provided build and execution output on 2026-10-24 UTC; see [operations evidence](operations.md#deployment-evidence). The checked run attempted no publications, so it did not exercise Telegram delivery or redaction. Historical logs can still contain credentials. No actual disclosure has been established.
 
 ## Open questions and proposals
 
@@ -71,7 +71,7 @@ These remain open. Acceptance of this documentation does not select new recovery
 
 | ID | Question | Proposal for discussion |
 |---|---|---|
-| Q1 | Which version and operational controls are live? | Verify the image-to-commit relationship, Scheduler, execution history, alerts, quotas, and spending. |
+| Q1 | Which operational controls are live? | The 2026-10-24 deployment's source/image mapping and one successful run are recorded in [operations](operations.md#deployment-evidence). Verify Scheduler settings, alerts, quotas, spending, and a run that attempts publication. |
 | Q2 | What recovery coverage and publication delay are required? | Retain discovered pending articles beyond feed eviction; decide separately whether unobserved articles need recovery and when news becomes too old. |
 | Q3 | How should exhausted attempts and ambiguous delivery be handled? | Agree a manual review/retry procedure and acceptable duplicate-versus-omission tradeoffs before changing automation. |
 | Q4 | What budget and quota policy is acceptable? | Agree an amount and response to provider limits before implementing a shared pause or spending controls. |
