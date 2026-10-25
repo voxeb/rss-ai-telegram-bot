@@ -1,0 +1,129 @@
+name: Manual deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_current_digest:
+        description: 'Expected current image digest (sha256:...); abort on mismatch'
+        required: true
+        type: string
+permissions:
+  contents: read
+
+# Deploy and rollback serialize together. A running update is never cancelled.
+# GitHub may replace a pending run; concurrency is not a durable release queue.
+concurrency:
+  group: register-news-production-update
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      EXPECTED_CURRENT_DIGEST: ${{ inputs.expected_current_digest }}
+      RELEASE_SERVICE_ACCOUNT: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
+      BUILD_SERVICE_ACCOUNT: ${{ vars.GCP_BUILD_SERVICE_ACCOUNT }}
+
+    steps:
+      - name: Initialize available evidence before checkout or authentication
+        env:
+          RELEASE_MODE: deploy
+          REPORT_DIR: ${{ runner.temp }}/release-report
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ['REPORT_DIR'])
+          path.mkdir(parents=True, exist_ok=True)
+          with open(os.environ['GITHUB_ENV'], 'a') as environment:
+              environment.write('REPORT_DIR=' + str(path) + '\n')
+              environment.write('ROLLBACK_RECORD_DIR=' + str(path.parent / 'rollback-record') + '\n')
+          data = dict(schema_version=1, repository=os.environ['GITHUB_REPOSITORY'],
+                      mode=os.environ['RELEASE_MODE'], run_id=os.environ['GITHUB_RUN_ID'],
+                      run_attempt=os.environ['GITHUB_RUN_ATTEMPT'], controller_sha=os.environ['GITHUB_SHA'],
+                      source_sha=os.environ['GITHUB_SHA'] if os.environ['RELEASE_MODE'] == 'deploy' else None,
+                      build_id=None, previous_digest=None, new_digest=None, execution_id=None,
+                      checks_passed=False, image_installed=False, execution_completed=False,
+                      article_published=None, verification='not_started', result='incomplete')
+          (path / 'release.json').write_text(json.dumps(data, indent=2) + '\n')
+          PY
+      - name: Permit only manual dispatch from this repository main
+        run: |
+          test "$GITHUB_REPOSITORY" = voxeb/rss-ai-telegram-bot
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+      - name: Check out the immutable dispatch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate parameters and pinned checkout
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 .github/scripts/release.py preflight
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run the same checks as CI on the pinned commit
+        run: |
+          bash .github/scripts/check-go.sh
+          python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Record successful prerequisite checks
+        run: python3 .github/scripts/release.py checks-passed
+
+      - name: Obtain a short-lived Google token through OIDC
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_lifetime: 3600s
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: deploy the image and observe the next scheduled execution
+        run: python3 .github/scripts/release.py deploy
+        env:
+          GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          GH_TOKEN: ${{ github.token }}
+      - name: Finalize sanitized evidence even after failure
+        if: always()
+        env:
+          WORKFLOW_RESULT: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ['REPORT_DIR'])
+          file = path / 'release.json'
+          if not file.exists():
+              raise SystemExit('Release evidence unavailable; runner initialization failed.')
+          data = json.loads(file.read_text())
+          data['workflow_result_before_artifact_upload'] = os.environ['WORKFLOW_RESULT']
+          if data['result'] == 'incomplete':
+              data.update(result='failure', error_code='prerequisite_failed_or_cancelled')
+          file.write_text(json.dumps(data, indent=2) + '\n')
+          text = '# Release evidence\n\n```json\n' + json.dumps(data, indent=2) + '\n```\n\n'
+          text += 'Image installation, execution completion, and publication are separate outcomes. '
+          text += 'Zero attempts do not validate delivery. No manual execution or automatic rollback is performed.\n'
+          (path / 'release.md').write_text(text)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(text)
+          PY
+      - name: Retain only sanitized release evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.REPORT_DIR }}/release.json
+            ${{ env.REPORT_DIR }}/release.md
+          retention-days: 90
+          if-no-files-found: error

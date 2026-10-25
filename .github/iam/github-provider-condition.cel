@@ -1,0 +1,8 @@
+attribute.repository_id == '1432283866' &&
+attribute.repository_owner_id == '4266793' &&
+attribute.ref == 'refs/heads/main' &&
+attribute.event_name == 'workflow_dispatch' &&
+attribute.workflow_ref in [
+  'voxeb/rss-ai-telegram-bot/.github/workflows/deploy.yml@refs/heads/main',
+  'voxeb/rss-ai-telegram-bot/.github/workflows/rollback.yml@refs/heads/main'
+]

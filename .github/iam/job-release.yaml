@@ -1,0 +1,8 @@
+title: Register News Job Release
+description: Read the existing Job and executions and update its configuration.
+stage: GA
+includedPermissions:
+  - run.jobs.get
+  - run.jobs.update
+  - run.executions.get
+  - run.executions.list

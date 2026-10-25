@@ -7,3 +7,5 @@ register-news-bot
 *.key
 *.pem
 .DS_Store
+__pycache__/
+gha-creds-*.json

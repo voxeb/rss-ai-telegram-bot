@@ -1,0 +1,8 @@
+title: Register News Release Controller
+description: Submit and inspect builds and read sanitized execution evidence.
+stage: GA
+includedPermissions:
+  - cloudbuild.builds.create
+  - cloudbuild.builds.get
+  - logging.logEntries.list
+  - serviceusage.services.use
