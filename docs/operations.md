@@ -4,7 +4,33 @@ This runbook describes existing behavior and how to inspect it. Initial reposito
 
 ## Deployment evidence
 
-The maintainer supplied the following `gcloud run jobs describe` output during queue troubleshooting. This is an **operator-provided snapshot**, not an independent inspection of the current deployment.
+### Verified deployment on 2026-10-24 (UTC)
+
+The maintainer built the merged [PR #5](https://github.com/voxeb/rss-ai-telegram-bot/pull/5) revision directly from GitHub with `gcloud builds submit --git-source-revision` and updated the existing Job's image. The evidence below was cross-checked from **maintainer-provided CLI output**, not direct access to the cloud account. A merge or image tag alone is not the evidence for this mapping.
+
+| Evidence | Verified value |
+|---|---|
+| Project / region / Job | `register-news` / `europe-west1` / `register-news` |
+| Source commit | [`3f61326847fce5030dc65df3178e537dad8034f7`](https://github.com/voxeb/rss-ai-telegram-bot/commit/3f61326847fce5030dc65df3178e537dad8034f7) |
+| Cloud Build | `7b6abcc3-71dd-4532-988e-db3ae1e42cee`, `SUCCESS` |
+| Source verification | Both `source.gitSource.revision` and `sourceProvenance.resolvedGitSource.revision` match the commit above; repository URL is `https://github.com/voxeb/rss-ai-telegram-bot.git` |
+| Image repository / tag | `europe-west1-docker.pkg.dev/register-news/cloud-run-source-deploy/register-news` / `git-3f61326847fc` |
+| Immutable image digest | `sha256:a99d6697569dc969c833a288cd030bac796a2fd9396a9022997da1adbef14ce6`; identical in Cloud Build results, Artifact Registry, and the checked execution |
+| Image push completed | `2026-10-24T23:52:29.753100014Z` |
+| First checked execution | `register-news-5nhct` |
+| Execution start / completion | `2026-10-24T23:55:05.983773Z` / `2026-10-24T23:55:41.280261Z` |
+| Execution outcome | `succeededCount: 1`; application log at `2026-10-24T23:55:38.115744Z`: `Published 0 new articles (attempted 0, failed 0)` |
+| Previous image recorded for rollback | Same image repository, digest `sha256:15dcecba28353d11f480ea3c24a22059f25c16870f8b87cc796bc466ab928405` |
+
+This confirms that the deployed image includes PR #5's Telegram error redaction and that a normal run completed without attempted article processing. It does **not** exercise live Gemini generation, Telegram delivery, or the redaction failure path. Zero attempts can reflect no new work, leases, delayed retries, or exhausted items; it does not prove the absence of pending work.
+
+The preceding executions `register-news-94b82` and `register-news-8mdz7`, created at 23:45 and 23:50 UTC, both used the recorded previous image and reported one successful task. Their source commit and application outcomes were not checked. The observed five-minute cadence is consistent with the documented schedule, but does not verify the Scheduler configuration.
+
+Outstanding checks from [baseline Issue #2](https://github.com/voxeb/rss-ai-telegram-bot/issues/2): Scheduler identity, location, schedule, target and enabled state; alert coverage; actual Gemini tier/quotas; and cloud spending. Production task settings and IAM were not re-inspected during this image update. The previous image is an observed rollback candidate, not a verified source baseline, and may predate the Telegram redaction correction.
+
+### Earlier configuration snapshot
+
+The maintainer supplied the following `gcloud run jobs describe` output during queue troubleshooting. This historical **operator-provided snapshot** is retained for context; its image is superseded by the deployment above and its other settings have not been reverified.
 
 | Setting | Reported value |
 |---|---|
@@ -14,9 +40,9 @@ The maintainer supplied the following `gcloud run jobs describe` output during q
 | Image repository | `europe-west1-docker.pkg.dev/register-news/cloud-run-source-deploy/register-news` |
 | Image digest | `sha256:a616c921dbb2892b136f07eb1f6f873ba87867166214154ffcc9a8fb28718a0d` |
 
-The source commit for that digest, current Scheduler configuration, recent execution outcomes, alert coverage, actual Gemini tier/quotas, and cloud spending are **not verified**. Do not label this image as containing PR #1 without build/deployment evidence. Track these checks in [baseline Issue #2](https://github.com/voxeb/rss-ai-telegram-bot/issues/2) and keep it open until they are resolved.
+The source commit for this historical digest is **not verified**. Do not label it as containing PR #1 without build/deployment evidence.
 
-After an approved deployment, record its date, source commit, immutable image digest, approving PR, and first checked execution in this section. No deployment was performed to create this document.
+After each approved deployment, update the dated evidence above with its source commit, immutable image digest, approving PR, and first checked execution. Keep any remaining uncertainty explicit.
 
 ## Inspect before changing anything
 
@@ -111,7 +137,7 @@ Example result: `Published 2 new articles (attempted 3, failed 1)`.
 
 Recommended controls, **not verified as configured**: failed-execution alerts, detection of individual processing errors, and review of exhausted records. Choose alert thresholds after establishing normal feed activity; silence alone does not prove a fault. An alert on failed Jobs alone misses partial failures. Check application error messages as well as platform status; do not assume plain-text logs have structured error severity.
 
-Current repository code sanitizes Telegram errors before callers log them ([Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3)). This does not establish that the deployed image includes the correction. Older versions can log the Telegram request URL and token; verify the deployed source/image mapping and redact credentials from historical logs before sharing them or attaching evidence to a public Issue. No actual disclosure has been established.
+The image verified in [deployment evidence](#deployment-evidence) includes the Telegram error sanitization from [Issue #3](https://github.com/voxeb/rss-ai-telegram-bot/issues/3). That run did not exercise a Telegram request or failure. Older versions can log the Telegram request URL and token; redact credentials from historical logs before sharing them or attaching evidence to a public Issue. No actual disclosure has been established.
 
 ## Recovering an article
 
