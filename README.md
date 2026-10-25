@@ -36,7 +36,7 @@ Cloud Scheduler invokes a Cloud Run Job on the documented five-minute schedule. 
 
 ## Features
 
-- Parses RSS 2.0 and extracts article content from HTML.
+- Parses RSS 2.0, converts headline HTML to plain text, and extracts article content from HTML.
 - Generates English summaries and publishes formatted posts with source links.
 - Seeds existing feed articles on first normal execution without publishing them.
 - Uses transactional Firestore leases to reduce concurrent duplicate processing.

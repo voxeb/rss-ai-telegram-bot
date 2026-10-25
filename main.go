@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	stdhtml "html"
@@ -344,8 +343,8 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	var f feed
-	if err := xml.Unmarshal(b, &f); err != nil {
+	f, err := parseFeed(b)
+	if err != nil {
 		return err
 	}
 	if len(f.Entries) == 0 {
@@ -397,8 +396,8 @@ func testRun(ctx context.Context) error {
 		return err
 	}
 
-	var f feed
-	if err := xml.Unmarshal(b, &f); err != nil {
+	f, err := parseFeed(b)
+	if err != nil {
 		return err
 	}
 	if len(f.Entries) == 0 {

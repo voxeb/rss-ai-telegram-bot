@@ -8,17 +8,19 @@ Initial baseline reviewed on 2026-10-25 against [6174929](https://github.com/vox
 
 | ID | Capability | Current behavior |
 |---|---|---|
-| F1 | Feed ingestion | Reads The Register's RSS 2.0 items and sorts by parsed publication time within each processing pass. The URL ends in `.atom`, but the parser expects RSS. |
+| F1 | Feed ingestion | Reads The Register's RSS 2.0 items, normalizes headline HTML to plain text, and sorts by parsed publication time within each processing pass. Normal and test runs share the parser. The URL ends in `.atom`, but the parser expects RSS. |
 | F2 | Article extraction | Extracts paragraphs and headings from `div.bodytext`, rejects text shorter than 250 bytes, and truncates input at 24,000 bytes. |
 | F3 | Summarization | Calls `gemini-3.5-flash-lite`; the prompt requests English, 2–4 sentences, at most 80 words, key facts and implications. These are prompt instructions, not validated output guarantees. |
-| F4 | Telegram publication | Sends an HTML-formatted headline, escaped summary, and original-article link. |
+| F4 | Telegram publication | Sends the plain-text headline escaped inside a bold HTML element, an escaped summary, and the original-article link. |
 | F5 | Initialization | The first normal run marks current RSS items `seeded` and creates the initialization marker without publishing historical articles. |
 | F6 | Duplicate suppression | Uses persistent identity, transactional five-minute processing leases, and ownership checks when completing claims. |
 | F7 | Bounded retries | Prioritizes first attempts; allows at most five claims per run and five attempts per article, including expired processing claims. Failed attempts wait at least 5, 10, 20, then 40 minutes. |
 | F8 | Diagnostics and test mode | Logs batch outcomes; all-attempts-failed batches fail the Job. Telegram errors are sanitized before returning to callers, retaining cancellation and timeout identification. `TEST_MODE=true` sends a real `[TEST]` message without updating publication history. |
-| F9 | Automated validation | Queue tests, Firestore-client tests with an RPC stub, and Telegram error/log tests with an HTTP stub; CI checks formatting, race-enabled tests, vet, and a Linux build. |
+| F9 | Automated validation | RSS headline fixtures, queue tests, Firestore-client tests with an RPC stub, and publication/error/log tests with an HTTP stub; CI checks formatting, race-enabled tests, vet, and a Linux build. |
 
-Sources: [main.go](../main.go), [queue.go](../queue.go), [queue_test.go](../queue_test.go), [firestore_test.go](../firestore_test.go), [telegram_test.go](../telegram_test.go), and [CI workflow](../.github/workflows/test.yml). The [Go CI run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823191) and [CodeQL run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823209) passed on the initial baseline commit; this is a dated observation, not a promise about future commits or production.
+Sources: [main.go](../main.go), [feed.go](../feed.go), [feed_test.go](../feed_test.go), [queue.go](../queue.go), [queue_test.go](../queue_test.go), [firestore_test.go](../firestore_test.go), [telegram_test.go](../telegram_test.go), and [CI workflow](../.github/workflows/test.yml). The [Go CI run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823191) and [CodeQL run](https://github.com/voxeb/rss-ai-telegram-bot/actions/runs/40139823209) passed on the initial baseline commit; this is a dated observation, not a promise about future commits or production.
+
+Headline normalization runs once after XML decoding, before claims, summarization, or publication. It extracts HTML text, decodes HTML entities once, collapses whitespace, and omits comments and script/style/template content. Inline text stays adjacent; line breaks and common block elements separate words. Encoded literal angle brackets remain text. GUIDs and URLs are unchanged, preserving article identity. This does not edit previously published messages or migrate existing Firestore titles.
 
 ## Recorded decisions
 
