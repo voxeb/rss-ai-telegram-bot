@@ -28,7 +28,7 @@ def job(digest=OLD, generation="1"):
 
 
 def execution(image=NEW, creator=r.SCHEDULER, success=True):
-    return {"name": r.JOB + "/executions/example-1", "job": r.JOB, "creator": creator,
+    return {"name": r.JOB + "/executions/example-1", "job": "register-news", "creator": creator,
             "createTime": "2026-10-25T10:05:00Z", "completionTime": "2026-10-25T10:05:40Z",
             "template": {"containers": [{"image": r.IMAGE + "@" + image}]},
             "conditions": [{"type": "Completed", "state": "CONDITION_SUCCEEDED" if success else "CONDITION_FAILED"}],
@@ -68,7 +68,7 @@ class FakeCloud:
     def executions(self, since):
         return copy.deepcopy(self.execs)
 
-    def logs(self, name):
+    def logs(self, name, started, completed):
         return self.counts, self.errors
 
 
@@ -137,6 +137,26 @@ class ControllerTests(unittest.TestCase):
         self.assertIs(self.record["article_published"], False)
         self.assertEqual(self.record["verification"], "completed_without_publication")
 
+    def test_full_parent_path_is_also_accepted(self):
+        self.cloud.execs[0]["job"] = r.JOB
+        self.observe()
+        self.assertTrue(self.record["execution_completed"])
+
+    def test_wrong_parent_or_resource_path_is_rejected(self):
+        for field, value in [("job", "other-job"),
+                             ("name", r.JOB.replace("register-news/locations", "other-project/locations") + "/executions/example-1"),
+                             ("name", r.JOB.replace("europe-west1", "us-central1") + "/executions/example-1"),
+                             ("name", r.JOB + "-other/executions/example-1")]:
+            with self.subTest(field=field, value=value):
+                self.cloud.execs = [{**execution(), field: value}]
+                with self.assertRaisesRegex(r.ReleaseError, "scheduled_execution_parent_mismatch"):
+                    self.observe()
+
+    def test_multiple_execution_containers_are_rejected(self):
+        self.cloud.execs[0]["template"]["containers"].append({"image": r.IMAGE + "@" + NEW})
+        with self.assertRaisesRegex(r.ReleaseError, "scheduled_execution_image_mismatch"):
+            self.observe()
+
     def test_nonzero_publication_is_reported(self):
         self.cloud.counts = {"published": 1, "attempted": 1, "failed": 0}
         self.observe()
@@ -171,6 +191,7 @@ class ControllerTests(unittest.TestCase):
         self.cloud.execs = [execution(image=OLD)]
         with self.assertRaisesRegex(r.ReleaseError, "scheduled_execution_image_mismatch"):
             self.observe()
+        self.assertEqual(self.record["execution_id"], "example-1")
         self.cloud.current = job(NEW, "3")
         with self.assertRaisesRegex(r.ReleaseError, "job_changed_during_observation"):
             self.controller.observe(job(NEW, "2"), NEW)
@@ -325,6 +346,36 @@ class ValidationTests(unittest.TestCase):
         old = {**recent,"createTime":"2026-10-24T00:00:00Z"}
         cloud.call = lambda *args: {"executions":[recent,old],"nextPageToken":"older-history"}
         self.assertEqual(len(cloud.executions("2026-10-25T10:00:00Z")), 2)
+
+    def test_logging_follows_empty_pages_and_retains_later_errors(self):
+        cloud = object.__new__(r.Cloud)
+        responses = [
+            {"nextPageToken": "scan"},
+            {"entries": [{"textPayload": "Published 0 new articles (attempted 0, failed 0)"}], "nextPageToken": "more"},
+            {"entries": [{"severity": "ERROR", "textPayload": SECRET}]}]
+        with patch.object(cloud, "call", side_effect=responses) as call:
+            counts, errors = cloud.logs("example-1", "2026-10-25T10:05:00Z", "2026-10-25T10:05:40Z")
+        self.assertEqual(counts, {"published": 0, "attempted": 0, "failed": 0})
+        self.assertEqual(errors, 1)
+        bodies = [args.args[3] for args in call.call_args_list]
+        self.assertEqual([b["pageToken"] for b in bodies], ["", "scan", "more"])
+        self.assertEqual(len({b["filter"] for b in bodies}), 1)
+        self.assertIn('timestamp >= "2026-10-25T10:04:59+00:00"', bodies[0]["filter"])
+        self.assertIn('timestamp <= "2026-10-25T10:06:40+00:00"', bodies[0]["filter"])
+        self.assertNotIn(SECRET, json.dumps((counts, errors)))
+
+    def test_logging_limits_pages_entries_and_repeated_tokens(self):
+        cases = [
+            ([{"nextPageToken": str(i)} for i in range(10)], "execution_log_limit", 10),
+            ([{"entries": [{}] * 1001}], "execution_log_limit", 1),
+            ([{"nextPageToken": "repeat"}] * 2, "execution_log_pagination_loop", 2)]
+        for responses, code, expected_calls in cases:
+            with self.subTest(code=code, expected_calls=expected_calls):
+                cloud = object.__new__(r.Cloud)
+                with patch.object(cloud, "call", side_effect=responses) as call:
+                    with self.assertRaisesRegex(r.ReleaseError, code):
+                        cloud.logs("example-1", "2026-10-25T10:05:00Z", "2026-10-25T10:05:40Z")
+                self.assertEqual(call.call_count, expected_calls)
 
     def test_main_stops_before_cloud_access_if_checks_failed_or_wrong_ref(self):
         for ref, passed in [("refs/heads/main",False),("refs/heads/other",True)]:
