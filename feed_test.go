@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -42,7 +43,7 @@ func TestParseFeedHeadlines(t *testing.T) {
 			}
 			want := raw.Entries[0]
 			want.Title = tc.want
-			if got.Entries[0] != want {
+			if !reflect.DeepEqual(got.Entries[0], want) {
 				t.Errorf("entry=%+v, want %+v", got.Entries[0], want)
 			}
 			if key(got.Entries[0]) != key(raw.Entries[0]) {

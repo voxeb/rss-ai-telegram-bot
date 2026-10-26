@@ -8,7 +8,7 @@ A lightweight Go application that summarizes technology news from [The Register]
 
 Traditional RSS-to-Telegram bots usually offer either headlines with links or full article text. Neither is ideal for quickly following technology news. This bot extracts article text and asks an LLM for the key facts and practical implications.
 
-Each post contains the original headline, an AI-generated summary, and a link to the article. The prompt requests 2–4 English sentences and at most 80 words; output accuracy and exact length are not guaranteed.
+Each post contains the original headline, an AI-generated summary, an optional hashtag from the source's RSS categories, and a link to the article. The prompt requests 2–4 English sentences and at most 80 words; output accuracy and exact length are not guaranteed.
 
 ## Scope and documentation
 
@@ -38,6 +38,7 @@ Cloud Scheduler invokes a Cloud Run Job on the documented five-minute schedule. 
 
 - Parses RSS 2.0, converts headline HTML to plain text, and extracts article content from HTML.
 - Generates English summaries and publishes formatted posts with source links.
+- Adds at most one hashtag using an explicit RSS category dictionary, without AI classification.
 - Seeds existing feed articles on first normal execution without publishing them.
 - Uses transactional Firestore leases to reduce concurrent duplicate processing.
 - Prioritizes first attempts over retries; sorts chronologically within each pass.
@@ -45,6 +46,31 @@ Cloud Scheduler invokes a Cloud Run Job on the documented five-minute schedule. 
 - Persists a five-attempt article budget with retry delays of 5, 10, 20, and 40 minutes.
 - Logs results and fails the Job when all attempted publications fail.
 - Provides a one-off test publication mode and credential-free automated tests.
+
+## RSS category hashtags
+
+Normal and test posts use the first recognized article `category` in RSS order. Matching ignores case, trims surrounding whitespace, and collapses repeated whitespace (including tabs, line breaks, and Unicode whitespace). The hashtag appears in its own paragraph after the summary and before `Read full article →`. Missing, empty, or unknown categories keep the previous format, without a hashtag or an extra empty paragraph.
+
+| RSS category | Hashtag |
+|---|---|
+| ai and ml | #AI |
+| security | #Security |
+| cyber-crime | #Security |
+| systems | #Systems |
+| personal tech | #PersonalTech |
+| virtualization | #Virtualization |
+| networks | #Networking |
+| public sector | #PublicSector |
+| os platforms | #OperatingSystems |
+| devops | #DevOps |
+| software | #Software |
+| applications | #Applications |
+| science | #Science |
+| columnists | #Opinion |
+| offbeat | #Offbeat |
+| bofh | #BOFH |
+
+These labels follow the source's sections, which sometimes describe genre rather than topic (for example, `columnists` becomes `#Opinion`). They are not AI classifications. The dictionary adds no API calls or dependencies and does not change Gemini requests, article identity, deduplication, queue/retry behavior, or Firestore schema. Previously published messages are not edited.
 
 ## Build and test
 
@@ -57,7 +83,7 @@ go test -race -count=1 ./...
 go vet ./...
 ```
 
-Tests cover queue priority, failures at each publication stage, attempt limits, retry delays and exhaustion, duplicate feed items, leases, cancellation, transaction callback retries, and Telegram credential redaction in returned errors and logs. They use in-memory state and stubbed external operations, require no cloud credentials, and send no Telegram messages. GitHub Actions runs formatting checks, tests, vet, and a Linux build on pushes and pull requests.
+Tests cover RSS categories, the full hashtag dictionary, normalization and ordered selection, final HTML messages with and without tags in both modes, queue priority, failures at each publication stage, attempt limits, retry delays and exhaustion, duplicate feed items, leases, cancellation, transaction callback retries, and Telegram credential redaction in returned errors and logs. They use in-memory state and stubbed external operations, require no cloud credentials, and send no Telegram messages. GitHub Actions runs formatting checks, tests, vet, and a Linux build on pushes and pull requests.
 
 ## Configuration and deployment
 

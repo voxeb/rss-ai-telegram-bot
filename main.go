@@ -31,11 +31,12 @@ type feed struct {
 }
 
 type entry struct {
-	ID      string `xml:"guid"`
-	Title   string `xml:"title"`
-	Summary string `xml:"description"`
-	Updated string `xml:"pubDate"`
-	URL     string `xml:"link"`
+	ID         string   `xml:"guid"`
+	Title      string   `xml:"title"`
+	Summary    string   `xml:"description"`
+	Updated    string   `xml:"pubDate"`
+	URL        string   `xml:"link"`
+	Categories []string `xml:"category"`
 }
 
 func (e entry) link() string {
@@ -197,7 +198,11 @@ func send(ctx context.Context, token, channel string, e entry, summary string) (
 			err = safeTelegramError(err, token)
 		}
 	}()
-	msg := "<b>" + stdhtml.EscapeString(e.Title) + "</b>\n\n" + stdhtml.EscapeString(summary) + "\n\n<a href=\"" + stdhtml.EscapeString(e.link()) + "\">Read full article →</a>"
+	msg := "<b>" + stdhtml.EscapeString(e.Title) + "</b>\n\n" + stdhtml.EscapeString(summary)
+	if hashtag := categoryHashtag(e.Categories); hashtag != "" {
+		msg += "\n\n" + stdhtml.EscapeString(hashtag)
+	}
+	msg += "\n\n<a href=\"" + stdhtml.EscapeString(e.link()) + "\">Read full article →</a>"
 	payload, _ := json.Marshal(map[string]any{"chat_id": channel, "text": msg, "parse_mode": "HTML", "disable_web_page_preview": false})
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.telegram.org/bot"+token+"/sendMessage", bytes.NewReader(payload))
 	if err != nil {
