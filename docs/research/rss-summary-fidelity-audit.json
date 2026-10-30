@@ -1,0 +1,503 @@
+{
+  "schema_version": 1,
+  "inspection_date": "2026-10-30",
+  "reference": "Saved The Register RSS article bodies; source-fidelity review, not independent news verification",
+  "unit": "One original model summary with its visible source headline",
+  "population": 30,
+  "materiality_rule": "Wrong or unsupported central fact, or a missing qualification that changes reasonable understanding/action; harmless compression is not a defect.",
+  "review_method": "AI-assisted editorial review; two independent reviewer blocks plus lead reconciliation and direct inspection of material findings; no human adjudication or blinded study.",
+  "sampling_limit": "One consecutive fixed feed sample, one source, one model/prompt/configuration; no production-wide estimate.",
+  "source_xml_sha256": "bc7a690245788ab9f70cd7feb2895d8da371bdbb7182e2c393ad69e55fff54ca",
+  "pre_audit_quality_json_sha256": "d601a9f736e7cc204d63e278151fe70cb378f27aaac2fbd0b8962987e03e3da1",
+  "counts": {
+    "minor_issue": 13,
+    "material_error": 4,
+    "no_material_issue": 13
+  },
+  "material_article_ids": [
+    "S02",
+    "S03",
+    "S14",
+    "S26"
+  ],
+  "records": [
+    {
+      "id": "S01",
+      "topic": "GM consent settlement",
+      "source_url": "https://www.theregister.com/security/2026/10/30/gm-cracks-the-petty-cash-box-for-multistate-driver-tracking-settlement/5306721",
+      "source_html_sha256": "28fecd566af4b5df8a257ac3f145eac712caba234a4a02e654f5bfaf3cba5da6",
+      "original_summary_sha256": "489a6824c29d880aa88cd870925d100f6eba8dc4be65c8c91b0c433823c04e92",
+      "raw_word_count": 83,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "precision",
+          "finding": "States/DC count",
+          "source_evidence": "Source p1–2 distinguishes 35 states and DC.",
+          "proposed_remedy": "Use 36 attorneys general, without calling all jurisdictions states."
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "topic": "Cursor extension infection",
+      "source_url": "https://www.theregister.com/cyber-crime/2026/10/30/anthropic-that-claude-code-extension-compromise-couldnt-be-us/5306682",
+      "source_html_sha256": "e3201c335c0e46a927e887cd6a0158c7e3d39938a39c3a99b310a7df2a8597b6",
+      "original_summary_sha256": "0f1fea497b35d69560cf71022b614225d63bb74001b35cc587a9d6eede12aadc",
+      "raw_word_count": 78,
+      "verdict": "material_error",
+      "findings": [
+        {
+          "severity": "material",
+          "type": "omission",
+          "finding": "Persistent local infection omitted",
+          "source_evidence": "Source p9–12 says persistence remains and an update alone does not remove it.",
+          "proposed_remedy": "Retain the continuing-risk and cleanup warning."
+        },
+        {
+          "severity": "minor",
+          "type": "attribution",
+          "finding": "Removal attributed to both companies",
+          "source_evidence": "Source p13–16 gives the removal confirmation to Cursor.",
+          "proposed_remedy": "Attribute removal to Cursor."
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "topic": "Voyager communications",
+      "source_url": "https://www.theregister.com/science/2026/10/30/voyager-1-gives-controllers-the-silent-treatment/5306637",
+      "source_html_sha256": "b03516271ff33fe673a163e1f92a368e5ebe15740ec688f3a86efe6d21178a8b",
+      "original_summary_sha256": "47d071e5dc051ddf7245326c8add9624bb4bb8d1271a5fb9fde52f08f3dbf1c0",
+      "raw_word_count": 62,
+      "verdict": "material_error",
+      "findings": [
+        {
+          "severity": "material",
+          "type": "wrong_fact",
+          "finding": "Distance milestone becomes power milestone",
+          "source_evidence": "Source p1 and p14 concern one-light-day distance and signal delay.",
+          "proposed_remedy": "Restore the distance/latency meaning."
+        },
+        {
+          "severity": "material",
+          "type": "attribution_certainty",
+          "finding": "Unconfirmed cause becomes manager statement",
+          "source_evidence": "Source p5 offers safe mode as a possibility; p6–7 quotes the manager wanting to understand the event.",
+          "proposed_remedy": "Keep the cause unresolved and attribution separate."
+        },
+        {
+          "severity": "minor",
+          "type": "attribution",
+          "finding": "Conditional outlook attributed to officials",
+          "source_evidence": "Source p15 gives the author’s conditional outlook.",
+          "proposed_remedy": "Do not invent an official forecast."
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "topic": "Early AlpineBSD project",
+      "source_url": "https://www.theregister.com/os-platforms/2026/10/30/alpinebsd-announced-an-ai-free-foss-os/5306589",
+      "source_html_sha256": "58c58335922768be474467a9f44b6cc4479f83178167ab8917d6cd83ad4dba9b",
+      "original_summary_sha256": "3182bb89ae62b705f3ffe94b21b83a285f44d11f0b14473ae6a07a6f91da1afd",
+      "raw_word_count": 57,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "certainty",
+          "finding": "Avoidance policy becomes absolute ban",
+          "source_evidence": "Source p2–4 qualifies the goal as avoiding generated material as far as possible.",
+          "proposed_remedy": "Preserve that qualification."
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "topic": "Hubble servicing options",
+      "source_url": "https://www.theregister.com/science/2026/10/30/nasa-ponders-a-hubble-servicing-mission-or-a-controlled-deorbit/5306622",
+      "source_html_sha256": "7744acc1ea383b22354470c8deba2dc66ad6f9495c6e6073dc0de83ca4f0cbf6",
+      "original_summary_sha256": "5860d8cba2304da9b3d5f15745dcee4009c43a3d801ba7698c31d45b0827bc88",
+      "raw_word_count": 62,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "attribution",
+          "finding": "Author/expert views merged into expert warning",
+          "source_evidence": "Source p9–10 combines author analysis with one former astronaut’s budget concern.",
+          "proposed_remedy": "Separate source viewpoints."
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "topic": "AI productivity report",
+      "source_url": "https://www.theregister.com/ai-and-ml/2026/10/30/ai-projects-not-paying-off-keep-at-it-says-uni-productivity-institute/5306581",
+      "source_html_sha256": "4bfed7d197c903c9d84e41cde31e6106def106a228cbcb6d8fbcfa133a7276cb",
+      "original_summary_sha256": "e685527a9f511e7d80d9d1cf959a9be906d3c057afdf079ea5834d454822c181",
+      "raw_word_count": 77,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S07",
+      "topic": "GP website disruption",
+      "source_url": "https://www.theregister.com/public-sector/2026/10/30/nhs-quango-warns-of-risk-to-gp-patient-data-after-website-vendor-collapse/5306647",
+      "source_html_sha256": "de77c3066dbbf457feae7b8661fbdb757e9b4b8f42c75742185bf1bb1378ecc6",
+      "original_summary_sha256": "7834e2f03df84ec0007ad66f1a3371320d26178cfda19ce520749b866de86f60",
+      "raw_word_count": 65,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S08",
+      "topic": "Missing GCHQ storage",
+      "source_url": "https://www.theregister.com/security/2026/10/30/british-intelligence-agency-misplaced-thousands-of-storage-devices-years-later-still-cant-say-how-many/5306605",
+      "source_html_sha256": "d094ce26d75b2abbe012832cfc5a85e506f1fec269386eaaaea957094bd9cb12",
+      "original_summary_sha256": "0da118cf4ad3622a3444f57f98271e0b564b467afd37b9ddf9454a129905c4bc",
+      "raw_word_count": 61,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "certainty",
+          "finding": "Planned tracking reads as completed fix",
+          "source_evidence": "Source p6 schedules automated tracking by year end; p7–8 gives the agency’s remediation claim.",
+          "proposed_remedy": "Distinguish the future tracker from claimed corrective action."
+        }
+      ]
+    },
+    {
+      "id": "S09",
+      "topic": "Accenture recruiting agents",
+      "source_url": "https://www.theregister.com/ai-and-ml/2026/10/30/accenture-ai-agents-are-sifting-through-applicants/5306460",
+      "source_html_sha256": "9c09bab5f21b5684fca96668b7e897bdd6063d5ea3fd04a423cc32fade2c4dc1",
+      "original_summary_sha256": "feaf60e7a0a46f5e4177bf38faa4644bfc8eb67c4f930a39d482014e8715ce4c",
+      "raw_word_count": 63,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S10",
+      "topic": "Household robot insurance",
+      "source_url": "https://www.theregister.com/ai-and-ml/2026/10/30/domestic-droid-gone-amok-dont-worry-youre-covered/5306396",
+      "source_html_sha256": "488eb94c51f58eeb0a8c092cf0cde5fdfcdac147658dbbdd4661bf193b9de4bb",
+      "original_summary_sha256": "028a7e98240bf66216331d67950279446ea5fb6ba301b4874b8e78598f5d0f65",
+      "raw_word_count": 64,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S11",
+      "topic": "Shelly reseller incident",
+      "source_url": "https://www.theregister.com/cyber-crime/2026/10/30/uk-shelly-reseller-warns-payment-data-stolen-after-malware-found-on-website/5306250",
+      "source_html_sha256": "b737cb57ab1cc2919b1eba4afc99ab72a058dbead32e88b1d5a151221b702452",
+      "original_summary_sha256": "89c16f513f3c7a4fc3c333b5bf4bdfedf72ab3e833a2edbd9d97a407ea2cf440",
+      "raw_word_count": 76,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "status",
+          "finding": "Completed notification called ongoing",
+          "source_evidence": "Source p3 says ICO was notified; p8 says the inquiry continues.",
+          "proposed_remedy": "Use the correct status for each action."
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "topic": "Google search monetization",
+      "source_url": "https://www.theregister.com/ai-and-ml/2026/10/30/googles-search-revenue-ferrari-hits-an-ai-powered-speed-bump/5306520",
+      "source_html_sha256": "08ae21d699a52eb1ec24dea230b783aa194d0fb86008cd19e7c873e631735c12",
+      "original_summary_sha256": "44f204db2bfcee83d9b4970ef7b9d6bcf2006a350d7b78b1412bc5b8a37a1dda",
+      "raw_word_count": 75,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "attribution",
+          "finding": "Combined diagnosis assigned to executives",
+          "source_evidence": "Source p5 quotes AI Mode; p10 is the author’s broader AI-products interpretation.",
+          "proposed_remedy": "Keep the broader interpretation attributed to the report."
+        }
+      ]
+    },
+    {
+      "id": "S13",
+      "topic": "Farm support anecdote",
+      "source_url": "https://www.theregister.com/systems/2026/10/30/farm-pc-maintained-by-a-14-year-old-dumped-support-chap-in-a-steaming-pile-of-tech-mess/5306217",
+      "source_html_sha256": "084aaf7d1d38822f2fa76b1357add9af40549a18eb1eec77c74adb264667cc38",
+      "original_summary_sha256": "065d6dd48a8abf6b938e94fed7708b17b7e6dd9b65cde32c628270d43871cb00",
+      "raw_word_count": 59,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "scope",
+          "finding": "Mainstream support becomes all support",
+          "source_evidence": "Source p11 names the end of mainstream support.",
+          "proposed_remedy": "Preserve the named support tier."
+        }
+      ]
+    },
+    {
+      "id": "S14",
+      "topic": "AWS growth forecast",
+      "source_url": "https://www.theregister.com/off-prem/2026/10/30/aws-installs-an-ai-accelerator-every-14-seconds-and-eyes-1-trillion-annual-revenue/5306547",
+      "source_html_sha256": "9f15268b247ae9c24be1e1f97262bad1a5d3d38b1699047df694c2ca1e404b7e",
+      "original_summary_sha256": "9d870348848b19040bc448df992abcfa72185e9ea5b48122c3f160805299e576",
+      "raw_word_count": 70,
+      "verdict": "material_error",
+      "findings": [
+        {
+          "severity": "material",
+          "type": "wrong_metric",
+          "finding": "Annual revenue becomes valuation",
+          "source_evidence": "The headline and source p1–2 concern annual revenue and its growth baseline.",
+          "proposed_remedy": "Use annual revenue over five to ten years."
+        },
+        {
+          "severity": "minor",
+          "type": "unsupported",
+          "finding": "Capital expenditure described as offset",
+          "source_evidence": "Source p10–14 discusses margins, faster payback and funding ability.",
+          "proposed_remedy": "Do not assert that growth already offsets expenditure."
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "topic": "Binance security incident",
+      "source_url": "https://www.theregister.com/security/2026/10/30/in-the-year-ai-re-wrote-the-infosec-rulebook-its-comforting-to-know-crypto-exchanges-still-have-bad-security/5306539",
+      "source_html_sha256": "5259a35b5ac4a5b8dfb5133465dc6b8ca327546f4750fa1e9a0f83d0f2ec2fe2",
+      "original_summary_sha256": "067ec74e05e1a872225ea36cd74e11b5564ae82d34fbafe4ddab23c8d3922a82",
+      "raw_word_count": 64,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "certainty",
+          "finding": "No evidence becomes no leak",
+          "source_evidence": "Source p9 reports no evidence of private-key leakage.",
+          "proposed_remedy": "Preserve the absence-of-evidence wording; initial-investigation context limits severity."
+        }
+      ]
+    },
+    {
+      "id": "S16",
+      "topic": "Intel earnings and supply",
+      "source_url": "https://www.theregister.com/systems/2026/10/30/pc-chip-plunge-wipes-out-a-quarter-of-intels-value/5306531",
+      "source_html_sha256": "cf0349d7aaf85f128069cfb667c656912370ef6046cc33732b77f84a09847680",
+      "original_summary_sha256": "3ce13f379e9293aae5f7e89625a7d8f10c494244b5fac8bb180b1dddb8d7c373",
+      "raw_word_count": 74,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "mechanism",
+          "finding": "Demand and supply constraints combined",
+          "source_evidence": "Source p4–5 links memory to weaker PC demand; p12–14 links supplies to server output.",
+          "proposed_remedy": "Keep the two mechanisms distinct."
+        }
+      ]
+    },
+    {
+      "id": "S17",
+      "topic": "AI developer-tool flaws",
+      "source_url": "https://www.theregister.com/security/2026/10/29/researchers-find-bugs-in-5-ai-developer-tools-with-openai-and-microsoft-flaws-still-unpatched/5306508",
+      "source_html_sha256": "760d3ee96dd7096ba117883eceb0833eb4d83d6ef5f73f66e3908a70bb72b67a",
+      "original_summary_sha256": "92c7e25b459ffbe3ebc0981841e39633045ca618fa63317a528f5cc78c2e7277",
+      "raw_word_count": 73,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S18",
+      "topic": "Howler privacy model",
+      "source_url": "https://www.theregister.com/offbeat/2026/10/29/howler-will-have-ai-answer-your-questions-then-burn-the-chat/5306484",
+      "source_html_sha256": "c4c50af7b05ba2c83b35c41ffddc526e45f0845056f1d91886a1509df3ccccf8",
+      "original_summary_sha256": "31e7406fad51dae8d47f477126c768bc5835fa57bd7a5754131968a6f1b0af88",
+      "raw_word_count": 80,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S19",
+      "topic": "Vera DevOps tooling",
+      "source_url": "https://www.theregister.com/ai-and-ml/2026/10/29/startup-wants-to-make-ai-agents-safe-for-devops-duty/5306477",
+      "source_html_sha256": "a56bccd496bc4c1c38e0cdb28eb4877f91385b025b06475a0776024215f9a80a",
+      "original_summary_sha256": "e7fa2db1a1d3ab3f109132c4be4f882af28d32200902e67756092971b4ecc921",
+      "raw_word_count": 73,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "scope",
+          "finding": "Agent date extended to all products",
+          "source_evidence": "Source p9 lists three products; p14 dates only vera-agents.",
+          "proposed_remedy": "Apply Q1 2027 only to the agents product."
+        }
+      ]
+    },
+    {
+      "id": "S20",
+      "topic": "Topcoat web framework",
+      "source_url": "https://www.theregister.com/devops/2026/10/29/topcoat-enables-rust-to-render-server-side-web-apps/5306470",
+      "source_html_sha256": "71b1a564cc2b09c415255b330c7af4cdf56430e5a61a0cf19093e0f4a3c3dd4d",
+      "original_summary_sha256": "8d9ecc0d942d57c7b94bbb916e12208b0330c7f67a6828632c7088426798bc6b",
+      "raw_word_count": 72,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S21",
+      "topic": "PHP2Shell exploit chain",
+      "source_url": "https://www.theregister.com/security/2026/10/29/suspected-chinese-attackers-built-a-custom-php2shell-exploit-and-rooted-25-servers/5306456",
+      "source_html_sha256": "1e409f6c7c26a2643b3ec4c3f5bf136420f52aa7b8fd018784d7fd3c0a3ae10f",
+      "original_summary_sha256": "056ec87ee757249a1191df872a4557d4b5b4a8168a1b17419d75a7caaee4da54",
+      "raw_word_count": 70,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S22",
+      "topic": "Ubuntu Core Desktop work",
+      "source_url": "https://www.theregister.com/os-platforms/2026/10/29/ubuntu-2704-may-bring-a-preview-of-the-long-awaited-core-desktop/5306426",
+      "source_html_sha256": "5d4d0081c36bd2e52c611526d5dd99b4f7fe1e5acd1f58b84f6a80c6f0cc1466",
+      "original_summary_sha256": "347458fa165855416d8023f1098eb5e5d43d9262b7d1f5a8ced2bb6be13bd225",
+      "raw_word_count": 70,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "attribution",
+          "finding": "Author analysis becomes outside observers",
+          "source_evidence": "Source p5–9 gives first-person author comparisons.",
+          "proposed_remedy": "Attribute that assessment to The Register."
+        }
+      ]
+    },
+    {
+      "id": "S23",
+      "topic": "BattMan manufacturing program",
+      "source_url": "https://www.theregister.com/science/2026/10/29/battman-aims-to-turbocharge-us-batteries-without-robbin-critical-minerals/5306273",
+      "source_html_sha256": "b4863ac9da768e848bb0229a6ba7cf2bead31be12ffde989a1e56ab8c5422a55",
+      "original_summary_sha256": "fcf313155079dca93168418df020387964c0b7e332f8da2e87c5d483bacf2a09",
+      "raw_word_count": 74,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S24",
+      "topic": "GSA internal file sharing",
+      "source_url": "https://www.theregister.com/public-sector/2026/10/29/gsa-left-sensitive-google-drive-files-open-to-staff-contractors/5306430",
+      "source_html_sha256": "e777ea33d8b6c04ffc4cfdec23db513b064b4c41baf68aff6456fdb265e326dc",
+      "original_summary_sha256": "d01b0ef17fd9de8332b4136828e452c31f8f751f8de00566b6e0c39658c23e06",
+      "raw_word_count": 77,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "scope",
+          "finding": "Historical Google scope narrowed to Drive",
+          "source_evidence": "Source p12–14 places the 2014 findings in the broader Google environment.",
+          "proposed_remedy": "Separate historical Google-environment failures from current Drive findings."
+        }
+      ]
+    },
+    {
+      "id": "S25",
+      "topic": "Oracle AI usage pricing",
+      "source_url": "https://www.theregister.com/applications/2026/10/29/oracle-wants-to-bill-you-for-every-ai-task-not-just-every-seat/5306403",
+      "source_html_sha256": "160a32500cbbd80c8502e65af5804c795b5cc6add32b93f1b90639fb0aca475c",
+      "original_summary_sha256": "0a535d3d6131694cd0cfe46ac2d0727ecd5eaee2261b84e8486290b29153519b",
+      "raw_word_count": 63,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S26",
+      "topic": "Postgres enterprise-AI commentary",
+      "source_url": "https://www.theregister.com/databases/2026/10/29/partner-content-built-to-bend-postgress-inventor-and-a-steward-on-what-ai-really-needs/5305957",
+      "source_html_sha256": "5ed5b678bc193b88e5b4d9116a25d1937601616cdfc9c7e134e1587db640c952",
+      "original_summary_sha256": "862b41ff1e2781fe46b49a82072f62fb7cd63908b62e964f5d0ba3e792cd50d2",
+      "raw_word_count": 72,
+      "verdict": "material_error",
+      "findings": [
+        {
+          "severity": "material",
+          "type": "scope",
+          "finding": "Narrow benchmark becomes general ceiling",
+          "source_evidence": "Source p2–4 describes Stonebraker’s MIT/Beaver work and different public-benchmark results.",
+          "proposed_remedy": "Limit the performance claim to those experiments."
+        },
+        {
+          "severity": "minor",
+          "type": "attribution",
+          "finding": "Specific benchmark assigned to both speakers",
+          "source_evidence": "Source p2–4 identifies Stonebraker; p15 distinguishes the speakers’ outlooks.",
+          "proposed_remedy": "Separate their attributed positions."
+        },
+        {
+          "severity": "minor",
+          "type": "provenance",
+          "finding": "Commercial contribution context omitted",
+          "source_evidence": "Source p1 and final credit identify an EnterpriseDB contribution.",
+          "proposed_remedy": "Preserve the partner-content context."
+        }
+      ]
+    },
+    {
+      "id": "S27",
+      "topic": "Belgian tax-agency outage",
+      "source_url": "https://www.theregister.com/security/2026/10/29/belgiums-tax-agency-confirms-cyberattack-pulls-services-offline/5306409",
+      "source_html_sha256": "cadbb9039bed20c3c6cf6b61fa77eb583ab1ae17db2287055b7220bae0f13cd3",
+      "original_summary_sha256": "9b05a2391c5a9f00c09ee0525d169a95a0fe2008f9008a8d0588e800fafb7263",
+      "raw_word_count": 58,
+      "verdict": "minor_issue",
+      "findings": [
+        {
+          "severity": "minor",
+          "type": "scope",
+          "finding": "Deadline eligibility omitted",
+          "source_evidence": "Source p4–5 restricts the October 31 extension to affected income categories.",
+          "proposed_remedy": "Name the affected filing scope; no express all-taxpayer claim was made."
+        }
+      ]
+    },
+    {
+      "id": "S28",
+      "topic": "Rust support in systemd",
+      "source_url": "https://www.theregister.com/os-platforms/2026/10/29/systemd-adds-support-for-rust/5306264",
+      "source_html_sha256": "4e152b7084488d669a960da1366789c56322a5a8f6c441aff6662eddea35d658",
+      "original_summary_sha256": "c45f4a7bdb691d179fa524985f1ea1c9fb7572aa348490a8a7eeac5f7a94027f",
+      "raw_word_count": 63,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S29",
+      "topic": "Vulcan return target",
+      "source_url": "https://www.theregister.com/offbeat/2026/10/29/critical-launch-for-vulcan-as-ula-targets-friday-the-13th/5306243",
+      "source_html_sha256": "f9fdc57a234d537cf52fa300edbf7f733cf6d4afd4aa4abf043991951c47811e",
+      "original_summary_sha256": "fdaad2e91673a03af6f4708cfa08151b6a28573962aa9fc3ba6f4a3000113f13",
+      "raw_word_count": 74,
+      "verdict": "no_material_issue",
+      "findings": []
+    },
+    {
+      "id": "S30",
+      "topic": "Ofcom age assurance",
+      "source_url": "https://www.theregister.com/security/2026/10/29/shortlist-of-age-checks-for-the-uks-under-16-social-media-ban-is-out-some-adults-will-need-verifying/5306282",
+      "source_html_sha256": "81eb31c378f99423aadf991ab44a05e3796b12c3bfd1808867040ad86c33f70a",
+      "original_summary_sha256": "5c90fa2041925beae96fb73e4ce24197a2119f287e0f4f4d54a3f4f71669d484",
+      "raw_word_count": 63,
+      "verdict": "no_material_issue",
+      "findings": []
+    }
+  ]
+}
